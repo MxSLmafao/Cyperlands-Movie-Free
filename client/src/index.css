@@ -43,8 +43,20 @@
 }
 
 .video-player-wrapper {
-  @apply relative w-full overflow-hidden rounded-lg bg-black;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: black;
   isolation: isolate;
+}
+
+.video-player-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
 }
 
 .search-bar {
