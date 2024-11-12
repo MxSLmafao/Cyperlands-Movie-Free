@@ -6,11 +6,6 @@ interface VideoPlayerProps {
   movieId: string;
 }
 
-interface VideoSource {
-  src: string;
-  type: string;
-}
-
 export default function VideoPlayer({ movieId }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -20,13 +15,6 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const videoSources: VideoSource[] = movieId
-    ? [
-        { src: `https://moviesapi.club/movies/${movieId}/stream`, type: 'video/mp4' },
-        { src: `https://moviesapi.club/movies/${movieId}/stream?format=webm`, type: 'video/webm' },
-      ]
-    : [];
 
   useEffect(() => {
     const video = videoRef.current;
@@ -62,27 +50,15 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       setError(errorMessage);
       setIsLoading(false);
     };
-    const handleLoadStart = () => setIsLoading(true);
-    const handleCanPlay = () => setIsLoading(false);
-    const handleStalled = () => {
-      setError("Video playback stalled. Please check your connection.");
-      setIsLoading(false);
-    };
 
     video.addEventListener("timeupdate", handleTimeUpdate);
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
     video.addEventListener("error", handleError);
-    video.addEventListener("loadstart", handleLoadStart);
-    video.addEventListener("canplay", handleCanPlay);
-    video.addEventListener("stalled", handleStalled);
 
     return () => {
       video.removeEventListener("timeupdate", handleTimeUpdate);
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
       video.removeEventListener("error", handleError);
-      video.removeEventListener("loadstart", handleLoadStart);
-      video.removeEventListener("canplay", handleCanPlay);
-      video.removeEventListener("stalled", handleStalled);
     };
   }, []);
 
@@ -146,6 +122,16 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
         className="h-full w-full"
         crossOrigin="anonymous"
         playsInline
+        src={movieId ? `https://moviesapi.club/movies/${movieId}/stream` : ''}
+        onLoadStart={() => {
+          console.log('Video load started');
+          setIsLoading(true);
+          setError(null);
+        }}
+        onCanPlay={() => {
+          console.log('Video can play');
+          setIsLoading(false);
+        }}
         onError={(e) => {
           console.error('Video error event:', e);
           if (videoRef.current?.error) {
@@ -153,12 +139,9 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
             console.error('Video error message:', videoRef.current.error.message);
           }
           setError("Failed to load video. Please try again later.");
+          setIsLoading(false);
         }}
-      >
-        {videoSources.map((source, index) => (
-          <source key={index} src={source.src} type={source.type} />
-        ))}
-      </video>
+      />
       
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
         <div className="flex items-center gap-4">
