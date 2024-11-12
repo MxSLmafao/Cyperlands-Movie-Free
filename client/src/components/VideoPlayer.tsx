@@ -34,42 +34,6 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       ]
     : [];
 
-  const handleError = (e: ErrorEvent) => {
-    console.error('Video error event:', e);
-    if (videoRef.current) {
-      console.error('Video source:', videoRef.current.currentSrc);
-      console.error('Network state:', videoRef.current.networkState);
-      console.error('Ready state:', videoRef.current.readyState);
-      
-      let errorMessage = "Failed to load video. Please try again later.";
-      if (videoRef.current.error) {
-        console.error('Video error code:', videoRef.current.error.code);
-        console.error('Video error message:', videoRef.current.error.message);
-        
-        switch (videoRef.current.error.code) {
-          case MediaError.MEDIA_ERR_ABORTED:
-            errorMessage = "Video playback was aborted.";
-            break;
-          case MediaError.MEDIA_ERR_NETWORK:
-            errorMessage = "A network error occurred while loading the video. Please check your connection.";
-            break;
-          case MediaError.MEDIA_ERR_DECODE:
-            errorMessage = "The video could not be decoded. The file might be corrupted.";
-            break;
-          case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-            errorMessage = `This video format is not supported. Browser support: ${
-              videoRef.current.canPlayType('application/vnd.apple.mpegurl') ? 'HLS ✓' : 'HLS ✗'
-            }, ${
-              videoRef.current.canPlayType('video/mp4') ? 'MP4 ✓' : 'MP4 ✗'
-            }`;
-            break;
-        }
-      }
-      setError(errorMessage);
-      setIsLoading(false);
-    }
-  };
-
   // Reset states when movieId changes
   useEffect(() => {
     setIsLoading(true);
@@ -84,18 +48,36 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
     };
   }, [movieId]);
 
-  // Validate video source
+  // Validate video source with fallback
   useEffect(() => {
     const validateVideoSource = async () => {
       try {
-        const response = await fetch(videoFormats[0].src, { method: 'HEAD' });
+        const response = await fetch(videoFormats[0].src, { 
+          method: 'HEAD',
+          mode: 'cors',
+          credentials: 'omit'
+        });
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         console.log('Video source validated:', videoFormats[0].src);
       } catch (error) {
         console.error('Video source validation failed:', error);
-        setError('Unable to access video stream. Please try again later.');
+        // Try fallback format immediately instead of showing error
+        try {
+          const fallbackResponse = await fetch(videoFormats[1].src, {
+            method: 'HEAD',
+            mode: 'cors',
+            credentials: 'omit'
+          });
+          if (fallbackResponse.ok) {
+            console.log('Fallback video source validated:', videoFormats[1].src);
+            return;
+          }
+        } catch (fallbackError) {
+          console.error('Fallback video source validation failed:', fallbackError);
+        }
+        setError('Unable to access video stream. The service might be temporarily unavailable.');
       }
     };
     
@@ -228,7 +210,22 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
         className="h-full w-full"
         crossOrigin="anonymous"
         playsInline
-        onError={handleError}
+        onError={(e) => {
+          console.error('Video error:', e);
+          if (videoRef.current?.error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED ||
+              videoRef.current?.error?.code === MediaError.MEDIA_ERR_NETWORK) {
+            // Try next source in videoFormats array
+            const currentSrc = videoRef.current.currentSrc;
+            const currentIndex = videoFormats.findIndex(format => format.src === currentSrc);
+            if (currentIndex < videoFormats.length - 1) {
+              videoRef.current.src = videoFormats[currentIndex + 1].src;
+              videoRef.current.load();
+              return;
+            }
+          }
+          setError('Unable to play video. Please try again later.');
+          setIsLoading(false);
+        }}
         onLoadStart={() => {
           console.log('Video load started');
           setIsLoading(true);
