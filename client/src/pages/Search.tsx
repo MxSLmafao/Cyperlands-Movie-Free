@@ -18,7 +18,7 @@ export default function Search() {
   const [year, setYear] = useState("");
   const [sortBy, setSortBy] = useState("popularity.desc");
 
-  const { data: searchResults, isLoading } = useTMDB(
+  const { data: searchResults, isLoading: searchLoading, error: searchError } = useTMDB(
     query
       ? `search/movie?query=${encodeURIComponent(query)}&year=${year}`
       : `discover/movie?sort_by=${sortBy}${genre ? `&with_genres=${genre}` : ""}${
@@ -26,9 +26,8 @@ export default function Search() {
         }`
   );
 
-  const { data: genres } = useTMDB("genre/movie/list");
+  const { data: genresData, isLoading: genresLoading } = useTMDB("genre/movie/list");
 
-  // Get the search params from URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const searchQuery = params.get("q");
@@ -59,13 +58,17 @@ export default function Search() {
             className="md:col-span-2"
           />
 
-          <Select value={genre} onValueChange={setGenre}>
+          <Select
+            value={genre}
+            onValueChange={setGenre}
+            disabled={genresLoading}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Genre" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">All Genres</SelectItem>
-              {genres?.genres?.map((g: any) => (
+              {genresData?.genres?.map((g: any) => (
                 <SelectItem key={g.id} value={g.id.toString()}>
                   {g.name}
                 </SelectItem>
@@ -90,7 +93,8 @@ export default function Search() {
 
         <MovieGrid
           movies={searchResults?.results}
-          loading={isLoading}
+          loading={searchLoading}
+          error={searchError}
         />
       </div>
     </div>

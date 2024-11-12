@@ -1,30 +1,30 @@
 import { useParams } from "wouter";
 import { useTMDB } from "@/hooks/use-tmdb";
 import VideoPlayer from "@/components/VideoPlayer";
-import { Button } from "@/components/ui/button";
-import { useUser } from "@/hooks/use-user";
-import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 export default function Movie() {
   const { id } = useParams();
-  const { data: movie } = useTMDB(`movie/${id}`);
-  const { data: credits } = useTMDB(`movie/${id}/credits`);
-  const { user } = useUser();
-  const { toast } = useToast();
+  const { data: movie, isLoading: movieLoading, error: movieError } = useTMDB(id ? `movie/${id}` : null);
+  const { data: credits, isLoading: creditsLoading } = useTMDB(id ? `movie/${id}/credits` : null);
 
-  if (!movie) return <div>Loading...</div>;
+  if (movieLoading || creditsLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  const handleAddToWatchlist = async () => {
-    if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to add movies to your watchlist",
-        variant: "destructive",
-      });
-      return;
-    }
-    // Add to watchlist logic here
-  };
+  if (movieError || !movie) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="rounded-md bg-destructive p-4 text-white">
+          Failed to load movie details. Please try again later.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -47,9 +47,6 @@ export default function Movie() {
                 </span>
               ))}
             </div>
-            <Button onClick={handleAddToWatchlist}>
-              Add to Watchlist
-            </Button>
           </div>
 
           <div>
@@ -57,11 +54,13 @@ export default function Movie() {
             <div className="space-y-4">
               {credits?.cast?.slice(0, 5).map((actor) => (
                 <div key={actor.id} className="flex items-center gap-4">
-                  <img
-                    src={`https://image.tmdb.org/t/p/w92${actor.profile_path}`}
-                    alt={actor.name}
-                    className="h-12 w-12 rounded-full object-cover"
-                  />
+                  {actor.profile_path && (
+                    <img
+                      src={`https://image.tmdb.org/t/p/w92${actor.profile_path}`}
+                      alt={actor.name}
+                      className="h-12 w-12 rounded-full object-cover"
+                    />
+                  )}
                   <div>
                     <p className="font-medium">{actor.name}</p>
                     <p className="text-sm text-muted-foreground">
