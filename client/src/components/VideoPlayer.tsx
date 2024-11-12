@@ -28,16 +28,26 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
         </div>
       )}
       
-      <iframe 
-        src={`https://moviesapi.club/movie/${movieId}`}
-        className="h-full w-full"
-        frameBorder="0"
-        allowFullScreen
-        style={{ aspectRatio: '16/9' }}
-        onLoad={() => setIsLoading(false)}
-        allow="fullscreen"
-        loading="lazy"
-      />
+      <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/9' }}>
+        <div className="pointer-events-none absolute inset-0" />
+        <iframe 
+          src={`https://moviesapi.club/movie/${movieId}`}
+          className="h-full w-full"
+          style={{ 
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'auto'
+          }}
+          frameBorder="0"
+          allowFullScreen
+          allow="fullscreen"
+          loading="lazy"
+          onLoad={() => setIsLoading(false)}
+        />
+      </div>
     </div>
   );
 }

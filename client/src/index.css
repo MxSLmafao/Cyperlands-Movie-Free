@@ -43,7 +43,8 @@
 }
 
 .video-player-wrapper {
-  @apply relative aspect-video w-full overflow-hidden rounded-lg bg-black;
+  @apply relative w-full overflow-hidden rounded-lg bg-black;
+  isolation: isolate;
 }
 
 .search-bar {
