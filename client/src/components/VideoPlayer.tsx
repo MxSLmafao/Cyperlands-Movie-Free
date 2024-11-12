@@ -24,11 +24,11 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
   const videoFormats = movieId
     ? [
         {
-          src: `https://moviesapi.club/movies/${movieId}/stream.mp4`,
+          src: `https://moviesapi.club/movie/${movieId}/stream.mp4`,
           type: "video/mp4",
         },
         {
-          src: `https://moviesapi.club/movies/${movieId}/stream`,
+          src: `https://moviesapi.club/movie/${movieId}/stream`,
           type: "video/mp4", // Default to MP4 since HLS isn't supported
         },
       ]
