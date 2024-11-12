@@ -21,15 +21,15 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const videoFormats: VideoFormat[] = movieId
+  const videoFormats = movieId
     ? [
-        {
-          src: `https://moviesapi.club/movies/${movieId}/stream`,
-          type: 'application/x-mpegURL' // HLS
-        },
         {
           src: `https://moviesapi.club/movies/${movieId}/stream.mp4`,
           type: 'video/mp4'
+        },
+        {
+          src: `https://moviesapi.club/movies/${movieId}/stream`,
+          type: 'video/mp4'  // Default to MP4 since HLS isn't supported
         }
       ]
     : [];
@@ -47,6 +47,26 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       setError(null);
     };
   }, [movieId]);
+
+  // Validate video source
+  useEffect(() => {
+    const validateVideoSource = async () => {
+      try {
+        const response = await fetch(videoFormats[0].src, { method: 'HEAD' });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        console.log('Video source validated:', videoFormats[0].src);
+      } catch (error) {
+        console.error('Video source validation failed:', error);
+        setError('Unable to access video stream. Please try again later.');
+      }
+    };
+    
+    if (movieId) {
+      validateVideoSource();
+    }
+  }, [movieId, videoFormats]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -94,7 +114,11 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
     };
 
     const handleError = (e: ErrorEvent) => {
-      console.error('Video error:', e);
+      console.error('Video error event:', e);
+      console.error('Video source:', video.currentSrc);
+      console.error('Network state:', video.networkState);
+      console.error('Ready state:', video.readyState);
+      
       let errorMessage = "Failed to load video. Please try again later.";
       if (video.error) {
         console.error('Video error code:', video.error.code);
@@ -204,9 +228,26 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
         className="h-full w-full"
         crossOrigin="anonymous"
         playsInline
+        onError={handleError}
+        onLoadStart={() => {
+          console.log('Video load started');
+          setIsLoading(true);
+          setError(null);
+        }}
+        onLoadedData={() => {
+          console.log('Video data loaded');
+          setIsLoading(false);
+        }}
       >
         {videoFormats.map((format, index) => (
-          <source key={index} src={format.src} type={format.type} />
+          <source 
+            key={index} 
+            src={format.src} 
+            type={format.type}
+            onError={(e) => {
+              console.error('Source error:', e);
+            }}
+          />
         ))}
         Your browser does not support the video tag or the video format.
       </video>
