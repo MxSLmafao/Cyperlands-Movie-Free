@@ -35,8 +35,7 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
         allowFullScreen
         style={{ aspectRatio: '16/9' }}
         onLoad={() => setIsLoading(false)}
-        sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
-        referrerPolicy="no-referrer"
+        allow="fullscreen"
         loading="lazy"
       />
     </div>
