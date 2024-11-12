@@ -34,6 +34,20 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       ]
     : [];
 
+  // Reset states when movieId changes
+  useEffect(() => {
+    setIsLoading(true);
+    setError(null);
+    setCurrentTime(0);
+    setDuration(0);
+    setIsPlaying(false);
+    
+    return () => {
+      setIsLoading(false);
+      setError(null);
+    };
+  }, [movieId]);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -49,9 +63,36 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
 
     const handleTimeUpdate = () => setCurrentTime(video.currentTime);
     const handleLoadedMetadata = () => {
+      console.log('Video metadata loaded');
       setDuration(video.duration);
+    };
+
+    const handleLoadStart = () => {
+      console.log('Video load started');
+      setIsLoading(true);
+      setError(null);
+    };
+
+    const handleLoadedData = () => {
+      console.log('Video data loaded');
       setIsLoading(false);
     };
+
+    const handleCanPlay = () => {
+      console.log('Video can play');
+      setIsLoading(false);
+    };
+
+    const handleWaiting = () => {
+      console.log('Video is waiting/buffering');
+      setIsLoading(true);
+    };
+
+    const handlePlaying = () => {
+      console.log('Video is playing');
+      setIsLoading(false);
+    };
+
     const handleError = (e: ErrorEvent) => {
       console.error('Video error:', e);
       let errorMessage = "Failed to load video. Please try again later.";
@@ -84,11 +125,21 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
 
     video.addEventListener("timeupdate", handleTimeUpdate);
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("loadstart", handleLoadStart);
+    video.addEventListener("loadeddata", handleLoadedData);
+    video.addEventListener("canplay", handleCanPlay);
+    video.addEventListener("waiting", handleWaiting);
+    video.addEventListener("playing", handlePlaying);
     video.addEventListener("error", handleError);
 
     return () => {
       video.removeEventListener("timeupdate", handleTimeUpdate);
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("loadstart", handleLoadStart);
+      video.removeEventListener("loadeddata", handleLoadedData);
+      video.removeEventListener("canplay", handleCanPlay);
+      video.removeEventListener("waiting", handleWaiting);
+      video.removeEventListener("playing", handlePlaying);
       video.removeEventListener("error", handleError);
     };
   }, []);
@@ -153,15 +204,6 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
         className="h-full w-full"
         crossOrigin="anonymous"
         playsInline
-        onLoadStart={() => {
-          console.log('Video load started');
-          setIsLoading(true);
-          setError(null);
-        }}
-        onCanPlay={() => {
-          console.log('Video can play');
-          setIsLoading(false);
-        }}
       >
         {videoFormats.map((format, index) => (
           <source key={index} src={format.src} type={format.type} />
