@@ -29,10 +29,6 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       )}
       
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/9' }}>
-        {/* Protective overlay to catch unwanted clicks */}
-        <div className="absolute inset-0 z-10" onClick={(e) => e.preventDefault()} />
-        
-        {/* Main video iframe with updated permissions */}
         <iframe 
           src={`https://moviesapi.club/movie/${movieId}`}
           className="h-full w-full"
@@ -43,10 +39,8 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
             width: '100%',
             height: '100%'
           }}
-          sandbox="allow-same-origin allow-scripts allow-forms allow-presentation"
-          allow="fullscreen"
-          allowFullScreen
           frameBorder="0"
+          allowFullScreen
           onLoad={() => setIsLoading(false)}
         />
       </div>
