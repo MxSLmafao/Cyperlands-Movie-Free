@@ -25,18 +25,41 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       setDuration(video.duration);
       setIsLoading(false);
     };
-    const handleError = () => {
-      setError("Failed to load video. Please try again later.");
+    const handleError = (e: ErrorEvent) => {
+      console.error('Video error:', e);
+      let errorMessage = "Failed to load video. Please try again later.";
+      if (video.error) {
+        switch (video.error.code) {
+          case MediaError.MEDIA_ERR_ABORTED:
+            errorMessage = "Video playback was aborted.";
+            break;
+          case MediaError.MEDIA_ERR_NETWORK:
+            errorMessage = "A network error occurred while loading the video.";
+            break;
+          case MediaError.MEDIA_ERR_DECODE:
+            errorMessage = "The video could not be decoded.";
+            break;
+          case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = "The video format is not supported.";
+            break;
+        }
+      }
+      setError(errorMessage);
       setIsLoading(false);
     };
     const handleLoadStart = () => setIsLoading(true);
     const handleCanPlay = () => setIsLoading(false);
+    const handleStalled = () => {
+      setError("Video playback stalled. Please check your connection.");
+      setIsLoading(false);
+    };
 
     video.addEventListener("timeupdate", handleTimeUpdate);
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
     video.addEventListener("error", handleError);
     video.addEventListener("loadstart", handleLoadStart);
     video.addEventListener("canplay", handleCanPlay);
+    video.addEventListener("stalled", handleStalled);
 
     return () => {
       video.removeEventListener("timeupdate", handleTimeUpdate);
@@ -44,6 +67,7 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       video.removeEventListener("error", handleError);
       video.removeEventListener("loadstart", handleLoadStart);
       video.removeEventListener("canplay", handleCanPlay);
+      video.removeEventListener("stalled", handleStalled);
     };
   }, []);
 
@@ -52,7 +76,8 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       if (isPlaying) {
         videoRef.current.pause();
       } else {
-        videoRef.current.play().catch(() => {
+        videoRef.current.play().catch((err) => {
+          console.error('Playback error:', err);
           setError("Failed to play video. Please try again.");
         });
       }
@@ -75,6 +100,18 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
     }
   };
 
+  if (!movieId) {
+    return (
+      <div className="video-player-wrapper">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+          <div className="rounded-md bg-destructive p-4 text-white">
+            Invalid movie ID
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="video-player-wrapper">
       {isLoading && (
@@ -92,15 +129,18 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       <video
         ref={videoRef}
         className="h-full w-full"
-        src={`https://moviesapi.club/movies/${movieId}/stream`}
-        onError={() => setError("Failed to load video. Please try again later.")}
+        src={movieId ? `https://moviesapi.club/movies/${movieId}/stream` : ''}
+        onError={(e) => {
+          console.error('Video error event:', e);
+          setError("Failed to load video. Please try again later.");
+        }}
       />
       
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
         <div className="flex items-center gap-4">
           <button
             onClick={togglePlay}
-            className="rounded-full bg-white/20 p-2 hover:bg-white/30"
+            className="rounded-full bg-white/20 p-2 hover:bg-white/30 disabled:opacity-50"
             disabled={isLoading || !!error}
           >
             {isPlaying ? (
@@ -113,7 +153,7 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
           <div className="flex w-32 items-center gap-2">
             <button
               onClick={toggleMute}
-              className="rounded-full bg-white/20 p-2 hover:bg-white/30"
+              className="rounded-full bg-white/20 p-2 hover:bg-white/30 disabled:opacity-50"
               disabled={isLoading || !!error}
             >
               {isMuted ? (

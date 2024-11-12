@@ -2,11 +2,21 @@ import { useParams } from "wouter";
 import { useTMDB } from "@/hooks/use-tmdb";
 import VideoPlayer from "@/components/VideoPlayer";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 export default function Movie() {
   const { id } = useParams();
-  const { data: movie, isLoading: movieLoading, error: movieError } = useTMDB(id ? `movie/${id}` : null);
-  const { data: credits, isLoading: creditsLoading } = useTMDB(id ? `movie/${id}/credits` : null);
+  const { data: movie, isLoading: movieLoading, error: movieError } = useTMDB(
+    id ? `movie/${id}` : null
+  );
+  const { data: credits, isLoading: creditsLoading } = useTMDB(
+    id && movie ? `movie/${id}/credits` : null
+  );
+
+  useEffect(() => {
+    // Reset scroll position when movie changes
+    window.scrollTo(0, 0);
+  }, [id]);
 
   if (movieLoading || creditsLoading) {
     return (
@@ -16,11 +26,11 @@ export default function Movie() {
     );
   }
 
-  if (movieError || !movie) {
+  if (movieError || !movie || !id) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="rounded-md bg-destructive p-4 text-white">
-          Failed to load movie details. Please try again later.
+          {movieError ? "Failed to load movie details. Please try again later." : "Invalid movie ID"}
         </div>
       </div>
     );
@@ -37,8 +47,8 @@ export default function Movie() {
             <p className="mb-4 text-lg text-muted-foreground">
               {movie.overview}
             </p>
-            <div className="mb-4 flex gap-2">
-              {movie.genres?.map((genre) => (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {movie.genres?.map((genre: { id: number; name: string }) => (
                 <span
                   key={genre.id}
                   className="rounded-full bg-secondary px-3 py-1 text-sm"
@@ -52,7 +62,12 @@ export default function Movie() {
           <div>
             <h2 className="mb-4 text-2xl font-semibold">Cast</h2>
             <div className="space-y-4">
-              {credits?.cast?.slice(0, 5).map((actor) => (
+              {credits?.cast?.slice(0, 5).map((actor: { 
+                id: number; 
+                name: string; 
+                profile_path: string | null;
+                character: string;
+              }) => (
                 <div key={actor.id} className="flex items-center gap-4">
                   {actor.profile_path && (
                     <img
