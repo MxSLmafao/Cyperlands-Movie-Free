@@ -25,12 +25,12 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
     ? [
         {
           src: `https://moviesapi.club/movies/${movieId}/stream.mp4`,
-          type: 'video/mp4'
+          type: "video/mp4",
         },
         {
           src: `https://moviesapi.club/movies/${movieId}/stream`,
-          type: 'video/mp4'  // Default to MP4 since HLS isn't supported
-        }
+          type: "video/mp4", // Default to MP4 since HLS isn't supported
+        },
       ]
     : [];
 
@@ -41,50 +41,17 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
     setCurrentTime(0);
     setDuration(0);
     setIsPlaying(false);
-    
+
+    // Try loading first video source
+    if (videoRef.current && videoFormats.length > 0) {
+      videoRef.current.src = videoFormats[0].src;
+    }
+
     return () => {
       setIsLoading(false);
       setError(null);
     };
   }, [movieId]);
-
-  // Validate video source with fallback
-  useEffect(() => {
-    const validateVideoSource = async () => {
-      try {
-        const response = await fetch(videoFormats[0].src, { 
-          method: 'HEAD',
-          mode: 'cors',
-          credentials: 'omit'
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        console.log('Video source validated:', videoFormats[0].src);
-      } catch (error) {
-        console.error('Video source validation failed:', error);
-        // Try fallback format immediately instead of showing error
-        try {
-          const fallbackResponse = await fetch(videoFormats[1].src, {
-            method: 'HEAD',
-            mode: 'cors',
-            credentials: 'omit'
-          });
-          if (fallbackResponse.ok) {
-            console.log('Fallback video source validated:', videoFormats[1].src);
-            return;
-          }
-        } catch (fallbackError) {
-          console.error('Fallback video source validation failed:', fallbackError);
-        }
-        setError('Unable to access video stream. The service might be temporarily unavailable.');
-      }
-    };
-    
-    if (movieId) {
-      validateVideoSource();
-    }
-  }, [movieId, videoFormats]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -208,22 +175,39 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       <video
         ref={videoRef}
         className="h-full w-full"
-        crossOrigin="anonymous"
         playsInline
         onError={(e) => {
           console.error('Video error:', e);
-          if (videoRef.current?.error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED ||
-              videoRef.current?.error?.code === MediaError.MEDIA_ERR_NETWORK) {
-            // Try next source in videoFormats array
-            const currentSrc = videoRef.current.currentSrc;
+          const videoElement = e.currentTarget;
+          
+          if (videoElement.error) {
+            console.error('Video error code:', videoElement.error.code);
+            console.error('Video error message:', videoElement.error.message);
+            
+            let errorMessage = 'Unable to play video. Please try again later.';
+            switch (videoElement.error.code) {
+              case MediaError.MEDIA_ERR_NETWORK:
+                errorMessage = 'Network error occurred. Please check your connection.';
+                break;
+              case MediaError.MEDIA_ERR_DECODE:
+                errorMessage = 'Unable to decode video. Please try again.';
+                break;
+              case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                errorMessage = 'Video format not supported by your browser.';
+                break;
+            }
+            setError(errorMessage);
+
+            // Try next source if available
+            const currentSrc = videoElement.currentSrc;
             const currentIndex = videoFormats.findIndex(format => format.src === currentSrc);
             if (currentIndex < videoFormats.length - 1) {
-              videoRef.current.src = videoFormats[currentIndex + 1].src;
-              videoRef.current.load();
+              console.log('Trying next video source:', videoFormats[currentIndex + 1].src);
+              videoElement.src = videoFormats[currentIndex + 1].src;
+              videoElement.load();
               return;
             }
           }
-          setError('Unable to play video. Please try again later.');
           setIsLoading(false);
         }}
         onLoadStart={() => {
@@ -236,16 +220,7 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
           setIsLoading(false);
         }}
       >
-        {videoFormats.map((format, index) => (
-          <source 
-            key={index} 
-            src={format.src} 
-            type={format.type}
-            onError={(e) => {
-              console.error('Source error:', e);
-            }}
-          />
-        ))}
+        <source src={videoFormats[0].src} type="video/mp4" />
         Your browser does not support the video tag or the video format.
       </video>
       
