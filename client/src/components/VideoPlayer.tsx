@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 interface VideoPlayerProps {
@@ -7,6 +7,17 @@ interface VideoPlayerProps {
 
 export default function VideoPlayer({ movieId }: VideoPlayerProps) {
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Prevent popup windows
+    const handlePopup = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    };
+    window.addEventListener('beforeunload', handlePopup);
+    return () => window.removeEventListener('beforeunload', handlePopup);
+  }, []);
 
   if (!movieId) {
     return (
@@ -29,20 +40,26 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       )}
       
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/9' }}>
-        <iframe 
-          src={`https://moviesapi.club/movie/${movieId}`}
-          className="h-full w-full"
-          style={{ 
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%'
-          }}
-          frameBorder="0"
-          allowFullScreen
-          onLoad={() => setIsLoading(false)}
+        {/* Protective overlay to catch unwanted clicks */}
+        <div 
+          className="absolute inset-0 z-10" 
+          style={{ pointerEvents: 'none' }}
         />
+        
+        <div className="relative w-full h-full">
+          <iframe 
+            src={`https://moviesapi.club/movie/${movieId}`}
+            className="absolute inset-0 w-full h-full"
+            style={{ 
+              pointerEvents: 'auto',
+              zIndex: 5
+            }}
+            frameBorder="0"
+            allowFullScreen
+            onLoad={() => setIsLoading(false)}
+            referrerPolicy="no-referrer"
+          />
+        </div>
       </div>
     </div>
   );
