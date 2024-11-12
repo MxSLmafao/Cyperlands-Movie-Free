@@ -10,8 +10,6 @@ import { Toaster } from "@/components/ui/toaster";
 import Home from "./pages/Home";
 import Movie from "./pages/Movie";
 import Search from "./pages/Search";
-import Auth from "./pages/Auth";
-import Profile from "./pages/Profile";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -20,8 +18,6 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/" component={Home} />
         <Route path="/movie/:id" component={Movie} />
         <Route path="/search" component={Search} />
-        <Route path="/auth" component={Auth} />
-        <Route path="/profile" component={Profile} />
         <Route>404 Page Not Found</Route>
       </Switch>
       <Toaster />
