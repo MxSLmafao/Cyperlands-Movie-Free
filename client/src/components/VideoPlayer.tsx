@@ -34,6 +34,42 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       ]
     : [];
 
+  const handleError = (e: ErrorEvent) => {
+    console.error('Video error event:', e);
+    if (videoRef.current) {
+      console.error('Video source:', videoRef.current.currentSrc);
+      console.error('Network state:', videoRef.current.networkState);
+      console.error('Ready state:', videoRef.current.readyState);
+      
+      let errorMessage = "Failed to load video. Please try again later.";
+      if (videoRef.current.error) {
+        console.error('Video error code:', videoRef.current.error.code);
+        console.error('Video error message:', videoRef.current.error.message);
+        
+        switch (videoRef.current.error.code) {
+          case MediaError.MEDIA_ERR_ABORTED:
+            errorMessage = "Video playback was aborted.";
+            break;
+          case MediaError.MEDIA_ERR_NETWORK:
+            errorMessage = "A network error occurred while loading the video. Please check your connection.";
+            break;
+          case MediaError.MEDIA_ERR_DECODE:
+            errorMessage = "The video could not be decoded. The file might be corrupted.";
+            break;
+          case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = `This video format is not supported. Browser support: ${
+              videoRef.current.canPlayType('application/vnd.apple.mpegurl') ? 'HLS ✓' : 'HLS ✗'
+            }, ${
+              videoRef.current.canPlayType('video/mp4') ? 'MP4 ✓' : 'MP4 ✗'
+            }`;
+            break;
+        }
+      }
+      setError(errorMessage);
+      setIsLoading(false);
+    }
+  };
+
   // Reset states when movieId changes
   useEffect(() => {
     setIsLoading(true);
@@ -113,40 +149,6 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       setIsLoading(false);
     };
 
-    const handleError = (e: ErrorEvent) => {
-      console.error('Video error event:', e);
-      console.error('Video source:', video.currentSrc);
-      console.error('Network state:', video.networkState);
-      console.error('Ready state:', video.readyState);
-      
-      let errorMessage = "Failed to load video. Please try again later.";
-      if (video.error) {
-        console.error('Video error code:', video.error.code);
-        console.error('Video error message:', video.error.message);
-        
-        switch (video.error.code) {
-          case MediaError.MEDIA_ERR_ABORTED:
-            errorMessage = "Video playback was aborted.";
-            break;
-          case MediaError.MEDIA_ERR_NETWORK:
-            errorMessage = "A network error occurred while loading the video. Please check your connection.";
-            break;
-          case MediaError.MEDIA_ERR_DECODE:
-            errorMessage = "The video could not be decoded. The file might be corrupted.";
-            break;
-          case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-            errorMessage = `This video format is not supported. Browser support: ${
-              video.canPlayType('application/vnd.apple.mpegurl') ? 'HLS ✓' : 'HLS ✗'
-            }, ${
-              video.canPlayType('video/mp4') ? 'MP4 ✓' : 'MP4 ✗'
-            }`;
-            break;
-        }
-      }
-      setError(errorMessage);
-      setIsLoading(false);
-    };
-
     video.addEventListener("timeupdate", handleTimeUpdate);
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
     video.addEventListener("loadstart", handleLoadStart);
@@ -154,7 +156,6 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
     video.addEventListener("canplay", handleCanPlay);
     video.addEventListener("waiting", handleWaiting);
     video.addEventListener("playing", handlePlaying);
-    video.addEventListener("error", handleError);
 
     return () => {
       video.removeEventListener("timeupdate", handleTimeUpdate);
@@ -164,7 +165,6 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       video.removeEventListener("canplay", handleCanPlay);
       video.removeEventListener("waiting", handleWaiting);
       video.removeEventListener("playing", handlePlaying);
-      video.removeEventListener("error", handleError);
     };
   }, []);
 
