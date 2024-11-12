@@ -24,13 +24,9 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
   const videoFormats = movieId
     ? [
         {
-          src: `https://moviesapi.club/movie/${movieId}/stream.mp4`,
+          src: `https://moviesapi.club/movie/${movieId}`,
           type: "video/mp4",
-        },
-        {
-          src: `https://moviesapi.club/movie/${movieId}/stream`,
-          type: "video/mp4", // Default to MP4 since HLS isn't supported
-        },
+        }
       ]
     : [];
 
@@ -42,7 +38,7 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
     setDuration(0);
     setIsPlaying(false);
 
-    // Try loading first video source
+    // Try loading video source
     if (videoRef.current && videoFormats.length > 0) {
       videoRef.current.src = videoFormats[0].src;
     }
@@ -197,16 +193,6 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
                 break;
             }
             setError(errorMessage);
-
-            // Try next source if available
-            const currentSrc = videoElement.currentSrc;
-            const currentIndex = videoFormats.findIndex(format => format.src === currentSrc);
-            if (currentIndex < videoFormats.length - 1) {
-              console.log('Trying next video source:', videoFormats[currentIndex + 1].src);
-              videoElement.src = videoFormats[currentIndex + 1].src;
-              videoElement.load();
-              return;
-            }
           }
           setIsLoading(false);
         }}
