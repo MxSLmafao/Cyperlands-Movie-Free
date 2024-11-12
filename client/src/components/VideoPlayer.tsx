@@ -6,6 +6,11 @@ interface VideoPlayerProps {
   movieId: string;
 }
 
+interface VideoSource {
+  src: string;
+  type: string;
+}
+
 export default function VideoPlayer({ movieId }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -15,6 +20,13 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const videoSources: VideoSource[] = movieId
+    ? [
+        { src: `https://moviesapi.club/movies/${movieId}/stream`, type: 'video/mp4' },
+        { src: `https://moviesapi.club/movies/${movieId}/stream?format=webm`, type: 'video/webm' },
+      ]
+    : [];
 
   useEffect(() => {
     const video = videoRef.current;
@@ -29,18 +41,21 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       console.error('Video error:', e);
       let errorMessage = "Failed to load video. Please try again later.";
       if (video.error) {
+        console.error('Video error code:', video.error.code);
+        console.error('Video error message:', video.error.message);
+        
         switch (video.error.code) {
           case MediaError.MEDIA_ERR_ABORTED:
             errorMessage = "Video playback was aborted.";
             break;
           case MediaError.MEDIA_ERR_NETWORK:
-            errorMessage = "A network error occurred while loading the video.";
+            errorMessage = "A network error occurred while loading the video. Please check your connection.";
             break;
           case MediaError.MEDIA_ERR_DECODE:
-            errorMessage = "The video could not be decoded.";
+            errorMessage = "The video could not be decoded. The file might be corrupted.";
             break;
           case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-            errorMessage = "The video format is not supported.";
+            errorMessage = "This video format is not supported by your browser. Please try a different browser or device.";
             break;
         }
       }
@@ -129,12 +144,21 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
       <video
         ref={videoRef}
         className="h-full w-full"
-        src={movieId ? `https://moviesapi.club/movies/${movieId}/stream` : ''}
+        crossOrigin="anonymous"
+        playsInline
         onError={(e) => {
           console.error('Video error event:', e);
+          if (videoRef.current?.error) {
+            console.error('Video error code:', videoRef.current.error.code);
+            console.error('Video error message:', videoRef.current.error.message);
+          }
           setError("Failed to load video. Please try again later.");
         }}
-      />
+      >
+        {videoSources.map((source, index) => (
+          <source key={index} src={source.src} type={source.type} />
+        ))}
+      </video>
       
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
         <div className="flex items-center gap-4">
