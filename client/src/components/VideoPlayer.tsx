@@ -6,6 +6,11 @@ interface VideoPlayerProps {
   movieId: string;
 }
 
+interface VideoFormat {
+  src: string;
+  type: string;
+}
+
 export default function VideoPlayer({ movieId }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -16,9 +21,31 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const videoFormats: VideoFormat[] = movieId
+    ? [
+        {
+          src: `https://moviesapi.club/movies/${movieId}/stream`,
+          type: 'application/x-mpegURL' // HLS
+        },
+        {
+          src: `https://moviesapi.club/movies/${movieId}/stream.mp4`,
+          type: 'video/mp4'
+        }
+      ]
+    : [];
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+
+    // Check browser format support
+    const canPlayHLS = video.canPlayType('application/vnd.apple.mpegurl');
+    const canPlayMP4 = video.canPlayType('video/mp4');
+
+    console.log('Browser video support:', {
+      hls: canPlayHLS,
+      mp4: canPlayMP4
+    });
 
     const handleTimeUpdate = () => setCurrentTime(video.currentTime);
     const handleLoadedMetadata = () => {
@@ -43,7 +70,11 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
             errorMessage = "The video could not be decoded. The file might be corrupted.";
             break;
           case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-            errorMessage = "This video format is not supported by your browser. Please try a different browser or device.";
+            errorMessage = `This video format is not supported. Browser support: ${
+              video.canPlayType('application/vnd.apple.mpegurl') ? 'HLS ✓' : 'HLS ✗'
+            }, ${
+              video.canPlayType('video/mp4') ? 'MP4 ✓' : 'MP4 ✗'
+            }`;
             break;
         }
       }
@@ -122,7 +153,6 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
         className="h-full w-full"
         crossOrigin="anonymous"
         playsInline
-        src={movieId ? `https://moviesapi.club/movies/${movieId}/stream` : ''}
         onLoadStart={() => {
           console.log('Video load started');
           setIsLoading(true);
@@ -132,16 +162,12 @@ export default function VideoPlayer({ movieId }: VideoPlayerProps) {
           console.log('Video can play');
           setIsLoading(false);
         }}
-        onError={(e) => {
-          console.error('Video error event:', e);
-          if (videoRef.current?.error) {
-            console.error('Video error code:', videoRef.current.error.code);
-            console.error('Video error message:', videoRef.current.error.message);
-          }
-          setError("Failed to load video. Please try again later.");
-          setIsLoading(false);
-        }}
-      />
+      >
+        {videoFormats.map((format, index) => (
+          <source key={index} src={format.src} type={format.type} />
+        ))}
+        Your browser does not support the video tag or the video format.
+      </video>
       
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
         <div className="flex items-center gap-4">
